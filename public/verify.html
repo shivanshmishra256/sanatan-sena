@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>सदस्य सत्यापन | Sanatan Sena Verification</title>
+  <meta name="description" content="Verify Sanatan Sena membership by scanning the QR code on the membership ID card." />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #fff5e6 0%, #ffe0b2 30%, #ffcc80 60%, #f4a24c 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .verify-container {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* Loading State */
+    .loading-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .loading-state .spinner {
+      width: 50px; height: 50px;
+      border: 5px solid #f0d0a0;
+      border-top-color: #800000;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-state p { color: #800000; font-size: 1.1rem; font-weight: 600; }
+
+    /* Error State */
+    .error-state {
+      text-align: center;
+      background: #fff;
+      border-radius: 16px;
+      padding: 50px 30px;
+      box-shadow: 0 8px 32px rgba(128,0,0,0.12);
+    }
+    .error-state .error-icon {
+      width: 70px; height: 70px;
+      background: #ffe0e0;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 2rem;
+    }
+    .error-state h2 { color: #b00020; font-size: 1.4rem; margin-bottom: 8px; }
+    .error-state p { color: #666; font-size: 0.95rem; }
+
+    /* Verified Card */
+    .verified-card {
+      background: #fff;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(128,0,0,0.15);
+      animation: slideUp 0.5s ease-out;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Top Banner */
+    .verified-banner {
+      background: linear-gradient(135deg, #800000 0%, #b22222 50%, #cc5500 100%);
+      padding: 24px 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .verified-banner::before {
+      content: '';
+      position: absolute;
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 60%);
+      animation: shimmer 3s ease-in-out infinite;
+    }
+    @keyframes shimmer {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.1); opacity: 1; }
+    }
+    .verified-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,215,0,0.6);
+      border-radius: 50px;
+      padding: 10px 24px;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    .verified-badge .check-icon {
+      width: 28px; height: 28px;
+      background: #2e7d32;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: bold;
+      box-shadow: 0 2px 8px rgba(46,125,50,0.4);
+    }
+    .verified-badge span {
+      color: #ffd700;
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: 0.5px;
+    }
+    .verified-banner h1 {
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 600;
+      position: relative;
+    }
+    .verified-banner .org-name {
+      color: #ffd700;
+      font-size: 1.4rem;
+      font-weight: 800;
+      display: block;
+      margin-top: 4px;
+    }
+
+    /* Member Photo */
+    .member-photo-section {
+      display: flex;
+      justify-content: center;
+      margin-top: -45px;
+      position: relative;
+      z-index: 2;
+    }
+    .member-photo-wrapper {
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      box-shadow: 0 4px 16px rgba(128,0,0,0.2);
+      overflow: hidden;
+      background: #f5e6d0;
+    }
+    .member-photo-wrapper img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .member-photo-wrapper .no-photo {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #800000, #cc5500);
+      color: #fff;
+      font-size: 2rem;
+      font-weight: 800;
+    }
+
+    /* Member Info */
+    .member-info {
+      padding: 16px 24px 24px;
+    }
+    .member-name {
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #800000;
+      margin: 8px 0 4px;
+    }
+    .member-id-label {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 20px;
+    }
+    .member-id-label strong {
+      color: #b22222;
+      font-size: 1rem;
+      letter-spacing: 1.5px;
+    }
+
+    /* Detail Rows */
+    .detail-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .detail-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      background: #fdf5ed;
+      border-radius: 12px;
+      border-left: 4px solid #cc5500;
+    }
+    .detail-row .icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #800000, #cc5500);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .detail-row .text-content {
+      flex: 1;
+    }
+    .detail-row .label {
+      font-size: 0.7rem;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+    .detail-row .value {
+      font-size: 0.95rem;
+      color: #333;
+      font-weight: 600;
+      margin-top: 2px;
+      word-break: break-word;
+    }
+
+    /* Status Badge */
+    .status-section {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .status-badge.active {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1.5px solid #a5d6a7;
+    }
+    .status-badge.inactive {
+      background: #fbe9e7;
+      color: #c62828;
+      border: 1.5px solid #ef9a9a;
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    .status-badge.active .status-dot { background: #2e7d32; }
+    .status-badge.inactive .status-dot { background: #c62828; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Footer */
+    .verify-footer {
+      text-align: center;
+      padding: 16px;
+      border-top: 1px solid #f0e0d0;
+      margin-top: 12px;
+    }
+    .verify-footer p {
+      font-size: 0.75rem;
+      color: #999;
+    }
+    .verify-footer .slogan {
+      color: #800000;
+      font-weight: 700;
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="verify-container">
+
+    <!-- Loading -->
+    <div id="loading-state" class="loading-state">
+      <div class="spinner"></div>
+      <p>सदस्य सत्यापन हो रहा है...</p>
+      <p style="font-size:0.85rem; color:#999; margin-top:4px;">Verifying Member...</p>
+    </div>
+
+    <!-- Error -->
+    <div id="error-state" class="error-state hidden">
+      <div class="error-icon">❌</div>
+      <h2>सत्यापन विफल</h2>
+      <p id="error-message">सदस्य नहीं मिला। / Member not found.</p>
+    </div>
+
+    <!-- Verified Card -->
+    <div id="verified-card" class="verified-card hidden">
+      <!-- Banner -->
+      <div class="verified-banner">
+        <div class="verified-badge">
+          <div class="check-icon">✓</div>
+          <span>VERIFIED ✅</span>
+        </div>
+        <h1>
+          Verified Member of
+          <span class="org-name">सनातन सेना</span>
+        </h1>
+      </div>
+
+      <!-- Photo -->
+      <div class="member-photo-section">
+        <div class="member-photo-wrapper">
+          <div id="member-photo-content"></div>
+        </div>
+      </div>
+
+      <!-- Info -->
+      <div class="member-info">
+        <div class="member-name" id="v-name"></div>
+        <div class="member-id-label">Member ID: <strong id="v-id"></strong></div>
+
+        <div class="detail-grid">
+          <div class="detail-row">
+            <div class="icon">📱</div>
+            <div class="text-content">
+              <div class="label">Mobile Number</div>
+              <div class="value" id="v-mobile"></div>
+            </div>
+          </div>
+          <div class="detail-row">
+            <div class="icon">📍</div>
+            <div class="text-content">
+              <div class="label">District / ज़िला</div>
+              <div class="value" id="v-district"></div>
+            </div>
+          </div>
+          <div class="detail-row" id="v-address-row">
+            <div class="icon">🏠</div>
+            <div class="text-content">
+              <div class="label">Address / पता</div>
+              <div class="value" id="v-address"></div>
+            </div>
+          </div>
+          <div class="detail-row">
+            <div class="icon">📅</div>
+            <div class="text-content">
+              <div class="label">Registration Date / पंजीकरण तिथि</div>
+              <div class="value" id="v-date"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div class="status-section">
+          <div class="status-badge" id="v-status">
+            <div class="status-dot"></div>
+            <span id="v-status-text"></span>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="verify-footer">
+          <p>This membership has been verified by the Sanatan Sena system.</p>
+          <div class="slogan">🙏 सबका साथ सबका सम्मान 🙏</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (async function() {
+      const params = new URLSearchParams(window.location.search);
+      const memberId = params.get("id");
+
+      const loadingEl = document.getElementById("loading-state");
+      const errorEl = document.getElementById("error-state");
+      const errorMsg = document.getElementById("error-message");
+      const cardEl = document.getElementById("verified-card");
+
+      if (!memberId) {
+        loadingEl.classList.add("hidden");
+        errorEl.classList.remove("hidden");
+        errorMsg.textContent = "कोई सदस्य ID नहीं मिली। / No Member ID provided.";
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/members/verify/${encodeURIComponent(memberId)}`);
+        const result = await response.json();
+
+        loadingEl.classList.add("hidden");
+
+        if (!response.ok || !result.valid) {
+          errorEl.classList.remove("hidden");
+          errorMsg.textContent = result.message || "सदस्य नहीं मिला। / Member not found.";
+          return;
+        }
+
+        const m = result.member;
+
+        // Photo
+        const photoContainer = document.getElementById("member-photo-content");
+        if (m.photoUrl) {
+          photoContainer.innerHTML = `<img src="${m.photoUrl}" alt="${m.fullName}" />`;
+        } else {
+          const initials = m.fullName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+          photoContainer.innerHTML = `<div class="no-photo">${initials}</div>`;
+        }
+
+        // Details
+        document.getElementById("v-name").textContent = m.fullName;
+        document.getElementById("v-id").textContent = m.membershipId;
+        document.getElementById("v-mobile").textContent = m.mobile;
+        document.getElementById("v-district").textContent = m.district || "—";
+
+        const addressRow = document.getElementById("v-address-row");
+        if (m.address) {
+          document.getElementById("v-address").textContent = m.address;
+        } else {
+          addressRow.classList.add("hidden");
+        }
+
+        const dateStr = m.createdAt
+          ? new Date(m.createdAt).toLocaleDateString("hi-IN", {
+              year: "numeric", month: "long", day: "numeric"
+            })
+          : "—";
+        document.getElementById("v-date").textContent = dateStr;
+
+        // Status
+        const statusBadge = document.getElementById("v-status");
+        const statusText = document.getElementById("v-status-text");
+        if (m.status === "active") {
+          statusBadge.classList.add("active");
+          statusText.textContent = "✅ Active Member / सक्रिय सदस्य";
+        } else {
+          statusBadge.classList.add("inactive");
+          statusText.textContent = "❌ Inactive / निष्क्रिय";
+        }
+
+        cardEl.classList.remove("hidden");
+
+      } catch (err) {
+        loadingEl.classList.add("hidden");
+        errorEl.classList.remove("hidden");
+        errorMsg.textContent = "सर्वर से जुड़ नहीं पाया। / Could not connect to server.";
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sanatan Sena Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: 'Outfit', sans-serif;
+        background: #f5f0eb;
+        min-height: 100vh;
+        color: #333;
+      }
+
+      /* ── Header ── */
+      .admin-header {
+        background: linear-gradient(135deg, #800000 0%, #b22222 50%, #cc5500 100%);
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 4px 20px rgba(128,0,0,0.3);
+      }
+      .admin-header .logo-area {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .admin-header .logo-icon {
+        width: 40px; height: 40px;
+        background: rgba(255,215,0,0.2);
+        border: 2px solid #ffd700;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem;
+      }
+      .admin-header h1 {
+        color: #fff;
+        font-size: 1.2rem;
+        font-weight: 700;
+      }
+      .admin-header h1 small {
+        display: block;
+        font-size: 0.7rem;
+        color: #ffd700;
+        font-weight: 500;
+        letter-spacing: 1px;
+      }
+      .header-actions {
+        display: flex; gap: 10px; align-items: center;
+      }
+      .header-actions a, .header-actions button {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        border: none;
+        transition: all 0.2s;
+      }
+      .btn-site {
+        background: rgba(255,255,255,0.15);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.3);
+      }
+      .btn-site:hover { background: rgba(255,255,255,0.25); }
+      .btn-logout {
+        background: #ffd700;
+        color: #800000;
+      }
+      .btn-logout:hover { background: #ffe44d; }
+
+      /* ── Container ── */
+      .admin-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px 20px;
+      }
+
+      /* ── Login ── */
+      .login-panel {
+        max-width: 400px;
+        margin: 80px auto;
+        background: #fff;
+        border-radius: 20px;
+        padding: 40px 32px;
+        box-shadow: 0 8px 32px rgba(128,0,0,0.1);
+        text-align: center;
+      }
+      .login-panel .login-icon {
+        width: 64px; height: 64px;
+        background: linear-gradient(135deg, #800000, #cc5500);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 16px;
+        font-size: 1.8rem;
+      }
+      .login-panel h2 {
+        color: #800000;
+        font-size: 1.4rem;
+        margin-bottom: 4px;
+      }
+      .login-panel .sub { color: #999; font-size: 0.85rem; margin-bottom: 24px; }
+      .login-panel input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e8ddd0;
+        border-radius: 10px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        margin-bottom: 12px;
+        transition: border-color 0.2s;
+      }
+      .login-panel input:focus {
+        outline: none;
+        border-color: #cc5500;
+      }
+      .login-panel .btn-login {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #800000, #cc5500);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      .login-panel .btn-login:hover { opacity: 0.9; }
+      .login-msg { margin-top: 12px; font-size: 0.85rem; color: #b00020; }
+
+      /* ── Stats ── */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .stat-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        position: relative;
+        overflow: hidden;
+      }
+      .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0;
+        width: 4px; height: 100%;
+      }
+      .stat-card.total::before { background: #800000; }
+      .stat-card.active::before { background: #2e7d32; }
+      .stat-card.inactive::before { background: #e65100; }
+      .stat-card.today::before { background: #1565c0; }
+      .stat-card .stat-icon {
+        width: 40px; height: 40px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+      }
+      .stat-card.total .stat-icon { background: #fde8e8; }
+      .stat-card.active .stat-icon { background: #e8f5e9; }
+      .stat-card.inactive .stat-icon { background: #fff3e0; }
+      .stat-card.today .stat-icon { background: #e3f2fd; }
+      .stat-card .stat-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #999;
+        font-weight: 600;
+      }
+      .stat-card .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #333;
+        margin-top: 2px;
+      }
+
+      /* ── Toolbar ── */
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      .search-box {
+        flex: 1;
+        min-width: 220px;
+        position: relative;
+      }
+      .search-box input {
+        width: 100%;
+        padding: 12px 16px 12px 40px;
+        border: 2px solid #e8ddd0;
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 0.9rem;
+        background: #fff;
+        transition: border-color 0.2s;
+      }
+      .search-box input:focus { outline: none; border-color: #cc5500; }
+      .search-box::before {
+        content: '🔍';
+        position: absolute;
+        left: 14px; top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.9rem;
+      }
+      .toolbar .btn-export {
+        padding: 12px 20px;
+        background: #2e7d32;
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex; align-items: center; gap: 6px;
+        transition: background 0.2s;
+        white-space: nowrap;
+      }
+      .toolbar .btn-export:hover { background: #1b5e20; }
+
+      /* ── Table ── */
+      .table-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        overflow: hidden;
+      }
+      .table-card .table-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid #f0e8e0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .table-card .table-header h3 {
+        font-size: 1rem;
+        color: #800000;
+        font-weight: 700;
+      }
+      .table-card .table-header .count-badge {
+        background: #fde8e8;
+        color: #800000;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 20px;
+      }
+      .table-scroll {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+      }
+      thead th {
+        background: #fdf5ed;
+        padding: 12px 14px;
+        text-align: left;
+        font-weight: 700;
+        color: #800000;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+        border-bottom: 2px solid #f0e0d0;
+      }
+      tbody td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #f5f0eb;
+        vertical-align: middle;
+      }
+      tbody tr:hover {
+        background: #fdf8f4;
+      }
+      tbody tr.inactive-row {
+        opacity: 0.6;
+      }
+      .member-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .member-avatar {
+        width: 36px; height: 36px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 2px solid #f0e0d0;
+      }
+      .member-avatar-placeholder {
+        width: 36px; height: 36px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #800000, #cc5500);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 800;
+      }
+      .id-badge {
+        font-weight: 700;
+        color: #800000;
+        font-size: 0.8rem;
+        background: #fde8e8;
+        padding: 3px 8px;
+        border-radius: 6px;
+      }
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 600;
+      }
+      .status-pill.active {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+      .status-pill.inactive {
+        background: #fbe9e7;
+        color: #c62828;
+      }
+      .status-pill .dot {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+      }
+      .status-pill.active .dot { background: #2e7d32; }
+      .status-pill.inactive .dot { background: #c62828; }
+
+      /* Action Buttons */
+      .action-btns {
+        display: flex;
+        gap: 6px;
+      }
+      .action-btn {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 0.7rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      .action-btn.toggle {
+        background: #e3f2fd;
+        color: #1565c0;
+      }
+      .action-btn.toggle:hover { background: #bbdefb; }
+      .action-btn.toggle.reactivate {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+      .action-btn.delete {
+        background: #fce4ec;
+        color: #c62828;
+      }
+      .action-btn.delete:hover { background: #f8bbd0; }
+
+      .no-results {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+        font-size: 0.95rem;
+      }
+
+      .hidden { display: none !important; }
+
+      @media (max-width: 600px) {
+        .admin-header { flex-direction: column; gap: 10px; text-align: center; }
+        .header-actions { width: 100%; justify-content: center; }
+        .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .stat-card { padding: 15px; }
+        .stat-value { font-size: 1.5rem; }
+        .toolbar { flex-direction: column; gap: 10px; }
+        .search-box { min-width: 100%; }
+        .btn-export { width: 100%; justify-content: center; }
+        
+        /* Table mobile improvements */
+        .table-scroll { 
+          margin: 0 -10px; 
+          width: calc(100% + 20px);
+          -webkit-overflow-scrolling: touch;
+        }
+        table { min-width: 600px; } /* Ensure table doesn't squish too much */
+        
+        .login-panel { padding: 30px 20px; margin: 40px auto; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- Header -->
+    <header class="admin-header" id="main-header" style="display:none;">
+      <div class="logo-area">
+        <div class="logo-icon">🛡️</div>
+        <h1>
+          Sanatan Sena
+          <small>ADMIN DASHBOARD</small>
+        </h1>
+      </div>
+      <div class="header-actions">
+        <a href="/" class="btn-site">🌐 Public Site</a>
+        <button class="btn-logout" id="logout-btn">Logout</button>
+      </div>
+    </header>
+
+    <!-- Login -->
+    <div id="admin-login-panel">
+      <div class="login-panel">
+        <div class="login-icon">🛡️</div>
+        <h2>Admin Login</h2>
+        <p class="sub">Sanatan Sena Management Panel</p>
+        <form id="admin-login-form">
+          <input name="mobile" value="+91 93056 25421" required />
+          <input name="password" type="password" placeholder="Enter Password" required />
+          <button type="submit" class="btn-login">🔐 Login</button>
+        </form>
+        <p class="login-msg" id="admin-login-message"></p>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="admin-container hidden" id="admin-dashboard-panel">
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card total">
+          <div class="stat-icon">👥</div>
+          <div class="stat-label">Total Members</div>
+          <div class="stat-value" id="stat-total">0</div>
+        </div>
+        <div class="stat-card active">
+          <div class="stat-icon">✅</div>
+          <div class="stat-label">Active Members</div>
+          <div class="stat-value" id="stat-active">0</div>
+        </div>
+        <div class="stat-card inactive">
+          <div class="stat-icon">⛔</div>
+          <div class="stat-label">Inactive</div>
+          <div class="stat-value" id="stat-inactive">0</div>
+        </div>
+        <div class="stat-card today">
+          <div class="stat-icon">🆕</div>
+          <div class="stat-label">New Today</div>
+          <div class="stat-value" id="stat-today">0</div>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="search-box">
+          <input type="text" id="search-input" placeholder="Search by Name, District, or Member ID..." />
+        </div>
+        <button class="btn-export" id="export-btn">📥 Export Excel</button>
+      </div>
+
+      <!-- Table -->
+      <div class="table-card">
+        <div class="table-header">
+          <h3>📋 All Members</h3>
+          <span class="count-badge" id="showing-count">0 members</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Member</th>
+                <th>Mobile</th>
+                <th>District</th>
+                <th>Address</th>
+                <th>Status</th>
+                <th>Registered</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="members-table-body"></tbody>
+          </table>
+        </div>
+        <div class="no-results hidden" id="no-results">No members found matching your search.</div>
+      </div>
+    </div>
+
+    <script src="/admin.js"></script>
+  </body>
+</html>
