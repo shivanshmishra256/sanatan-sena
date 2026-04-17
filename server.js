@@ -16,17 +16,33 @@ const JWT_SECRET = process.env.JWT_SECRET || "sanatan-sena-dev-secret-change-thi
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "vivek1042x";
 const ADMIN_MOBILE = process.env.ADMIN_MOBILE || "+91 93056 25421";
 const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY || "";
-const MONGODB_URI = process.env.MONGODB_URI || "";
-const OTP_TTL_MS = 5 * 60 * 1000;
-
-// ── MongoDB Connection ──
-if (MONGODB_URI) {
-  mongoose.connect(MONGODB_URI)
-    .then(() => console.log("✅ MongoDB connected"))
-    .catch((err) => console.error("❌ MongoDB error:", err.message));
-} else {
-  console.warn("⚠️ MONGODB_URI not set — database features will not work");
+// ── MongoDB Connection Middleware ──
+let isConnected = false;
+async function ensureDBConnection() {
+  if (isConnected || mongoose.connection.readyState === 1) return;
+  try {
+    await mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 30000,
+    });
+    isConnected = true;
+    console.log("✅ MongoDB connected successfully");
+  } catch (err) {
+    console.error("❌ MongoDB connection error:", err.message);
+    throw err;
+  }
 }
+
+app.use(async (req, res, next) => {
+  if (req.path.startsWith("/api/") && MONGODB_URI) {
+    try {
+      await ensureDBConnection();
+    } catch (error) {
+      return res.status(500).json({ message: "Database connection failed", error: error.message });
+    }
+  }
+  next();
+});
 
 app.use(cors());
 app.use(express.json({ limit: "15mb" }));
