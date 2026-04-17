@@ -1,76 +1,61 @@
+if (process.env.NODE_ENV !== "production") require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const fs = require("fs");
 const path = require("path");
 const jwt = require("jsonwebtoken");
 const QRCode = require("qrcode");
 const multer = require("multer");
+const mongoose = require("mongoose");
+const Member = require("./models/Member");
 
 const app = express();
 const PORT = process.env.PORT || 5050;
 
-const DATA_FILE = path.join(__dirname, "data", "members.json");
-const UPLOAD_DIR = path.join(__dirname, "public", "uploads");
 const JWT_SECRET = process.env.JWT_SECRET || "sanatan-sena-dev-secret-change-this";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "vivek1042x";
 const ADMIN_MOBILE = process.env.ADMIN_MOBILE || "+91 93056 25421";
 const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY || "";
+const MONGODB_URI = process.env.MONGODB_URI || "";
 const OTP_TTL_MS = 5 * 60 * 1000;
 
 const pendingOtps = new Map();
 
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
-
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+// ── MongoDB Connection ──
+if (MONGODB_URI) {
+  mongoose.connect(MONGODB_URI)
+    .then(() => console.log("✅ MongoDB connected"))
+    .catch((err) => console.error("❌ MongoDB error:", err.message));
+} else {
+  console.warn("⚠️ MONGODB_URI not set — database features will not work");
 }
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, UPLOAD_DIR);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname || ".jpg");
-    const safeName = `ss-${Date.now()}${ext}`;
-    cb(null, safeName);
-  }
-});
+app.use(cors());
+app.use(express.json({ limit: "15mb" }));
+app.use(express.static(path.join(__dirname, "public")));
 
+// Use memory storage for photos (store as base64 in MongoDB)
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
-function readMembers() {
-  if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, "[]", "utf-8");
-  }
-  const raw = fs.readFileSync(DATA_FILE, "utf-8");
-  return JSON.parse(raw || "[]");
-}
-
-function writeMembers(members) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(members, null, 2), "utf-8");
-}
-
 function normalizeMobile(value) {
-  // Extract only digits and take the last 10
   const digits = String(value || "").replace(/\D/g, "");
   return digits.length > 10 ? digits.slice(-10) : digits;
 }
 
-function generateMembershipId(existingMembers) {
-  const prefix = "SS";
-  const current = existingMembers
-    .map((m) => m.membershipId)
-    .filter((id) => typeof id === "string" && id.startsWith(prefix))
-    .map((id) => Number(id.replace(prefix, "")))
-    .filter((n) => Number.isFinite(n));
+async function generateMembershipId() {
+  const lastMember = await Member.findOne({}, { membershipId: 1 })
+    .sort({ membershipId: -1 })
+    .lean();
 
-  const next = (Math.max(0, ...current) + 1).toString().padStart(6, "0");
-  return `${prefix}${next}`;
+  let nextNum = 1;
+  if (lastMember && lastMember.membershipId) {
+    const num = Number(lastMember.membershipId.replace("SS", ""));
+    if (Number.isFinite(num)) nextNum = num + 1;
+  }
+
+  return `SS${nextNum.toString().padStart(6, "0")}`;
 }
 
 function authMiddleware(req, res, next) {
@@ -88,10 +73,12 @@ function authMiddleware(req, res, next) {
   }
 }
 
+// ── Health ──
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok" });
+  res.json({ status: "ok", db: mongoose.connection.readyState === 1 ? "connected" : "disconnected" });
 });
 
+// ── OTP Send ──
 app.post("/api/otp/send", async (req, res) => {
   const { mobile } = req.body;
   if (!mobile) {
@@ -99,11 +86,28 @@ app.post("/api/otp/send", async (req, res) => {
   }
 
   const normalizedMobile = normalizeMobile(mobile);
-  const members = readMembers();
 
-  // UNIQUE CHECK: Prevent OTP if already registered
-  const exists = members.find((m) => normalizeMobile(m.mobile) === normalizedMobile);
-  if (exists) {
+  // Check if already registered
+  const exists = await Member.findOne({
+    $expr: {
+      $eq: [
+        { $substr: [{ $replaceAll: { input: "$mobile", find: " ", replacement: "" } }, -10, 10] },
+        normalizedMobile
+      ]
+    }
+  }).lean();
+
+  if (!exists) {
+    // Simple check with regex
+    const allMembers = await Member.find({}, { mobile: 1, membershipId: 1 }).lean();
+    const found = allMembers.find((m) => normalizeMobile(m.mobile) === normalizedMobile);
+    if (found) {
+      return res.status(409).json({
+        message: "इस नंबर से पंजीकरण पहले ही हो चुका है। / Mobile already registered.",
+        membershipId: found.membershipId
+      });
+    }
+  } else {
     return res.status(409).json({
       message: "इस नंबर से पंजीकरण पहले ही हो चुका है। / Mobile already registered.",
       membershipId: exists.membershipId
@@ -115,7 +119,6 @@ app.post("/api/otp/send", async (req, res) => {
 
   pendingOtps.set(normalizedMobile, { otp, expiresAt });
 
-  // SMS Sending Logic (Fast2SMS Integration using Environment Variable)
   console.log(`Attempting to send OTP ${otp} to ${normalizedMobile}`);
 
   try {
@@ -123,13 +126,13 @@ app.post("/api/otp/send", async (req, res) => {
     const response = await fetch(url);
     const smsResult = await response.json();
     console.log("SMS Gateway Response:", smsResult);
-    
+
     return res.json({
-      message: smsResult.return 
-        ? "OTP आपके मोबाइल पर भेज दिया गया है। / OTP sent to your mobile." 
+      message: smsResult.return
+        ? "OTP आपके मोबाइल पर भेज दिया गया है। / OTP sent to your mobile."
         : `SMS Gateway Error: ${smsResult.message || "Unknown error"}`,
       success: smsResult.return,
-      otp // Still returning for dev/testing; in production, you'd hide this.
+      otp
     });
   } catch (err) {
     console.error("SMS Gateway Network Error:", err);
@@ -137,6 +140,7 @@ app.post("/api/otp/send", async (req, res) => {
   }
 });
 
+// ── Register ──
 app.post("/api/members/register", (req, res, next) => {
   upload.single("photo")(req, res, (err) => {
     if (err) {
@@ -169,7 +173,6 @@ app.post("/api/members/register", (req, res, next) => {
       });
     }
 
-    const members = readMembers();
     const normalizedMobile = normalizeMobile(mobile);
 
     const otpEntry = pendingOtps.get(normalizedMobile);
@@ -179,7 +182,9 @@ app.post("/api/members/register", (req, res, next) => {
 
     pendingOtps.delete(normalizedMobile);
 
-    const exists = members.find((m) => normalizeMobile(m.mobile) === normalizedMobile);
+    // Check duplicate
+    const allMembers = await Member.find({}, { mobile: 1, membershipId: 1 }).lean();
+    const exists = allMembers.find((m) => normalizeMobile(m.mobile) === normalizedMobile);
     if (exists) {
       return res.status(409).json({
         message: "Member with this mobile number is already registered",
@@ -187,7 +192,7 @@ app.post("/api/members/register", (req, res, next) => {
       });
     }
 
-    const membershipId = generateMembershipId(members);
+    const membershipId = await generateMembershipId();
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     const verificationUrl = `${baseUrl}/verify.html?id=${encodeURIComponent(membershipId)}`;
     const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
@@ -199,8 +204,14 @@ app.post("/api/members/register", (req, res, next) => {
       }
     });
 
-    const member = {
-      id: Date.now().toString(),
+    // Convert photo to base64
+    let photoBase64 = "";
+    if (req.file && req.file.buffer) {
+      const mimeType = req.file.mimetype || "image/jpeg";
+      photoBase64 = `data:${mimeType};base64,${req.file.buffer.toString("base64")}`;
+    }
+
+    const member = new Member({
       membershipId,
       fullName: fullName.trim(),
       fatherName: String(fatherName || "").trim(),
@@ -211,30 +222,47 @@ app.post("/api/members/register", (req, res, next) => {
       state: String(state || "").trim(),
       district: String(district || "").trim(),
       address: String(address || "").trim(),
-      photoUrl: req.file ? `/uploads/${req.file.filename}` : "",
+      photoBase64,
       language: language === "en" ? "en" : "hi",
       qrCodeDataUrl,
       verificationUrl,
-      status: "active",
-      createdAt: new Date().toISOString()
-    };
+      status: "active"
+    });
 
-    members.push(member);
-    writeMembers(members);
+    await member.save();
 
+    // Return response compatible with frontend (use photoBase64 as photoUrl)
     return res.status(201).json({
       message: "Member registered successfully",
-      member
+      member: {
+        id: member._id,
+        membershipId: member.membershipId,
+        fullName: member.fullName,
+        fatherName: member.fatherName,
+        mobile: member.mobile,
+        email: member.email,
+        dob: member.dob,
+        gender: member.gender,
+        state: member.state,
+        district: member.district,
+        address: member.address,
+        photoUrl: member.photoBase64,
+        language: member.language,
+        qrCodeDataUrl: member.qrCodeDataUrl,
+        verificationUrl: member.verificationUrl,
+        status: member.status,
+        createdAt: member.createdAt
+      }
     });
   } catch (error) {
     return res.status(500).json({ message: "Registration failed", error: error.message });
   }
 });
 
-app.get("/api/members/verify/:membershipId", (req, res) => {
+// ── Verify Member ──
+app.get("/api/members/verify/:membershipId", async (req, res) => {
   const membershipId = req.params.membershipId;
-  const members = readMembers();
-  const member = members.find((m) => m.membershipId === membershipId);
+  const member = await Member.findOne({ membershipId }).lean();
 
   if (!member) {
     return res.status(404).json({
@@ -255,33 +283,45 @@ app.get("/api/members/verify/:membershipId", (req, res) => {
       state: member.state,
       status: member.status,
       createdAt: member.createdAt,
-      photoUrl: member.photoUrl,
+      photoUrl: member.photoBase64 || "",
       qrCodeDataUrl: member.qrCodeDataUrl
     }
   });
 });
 
-app.get("/api/members/count", (_req, res) => {
-  const members = readMembers();
-  res.json({ count: members.length });
+// ── Member Count ──
+app.get("/api/members/count", async (_req, res) => {
+  const count = await Member.countDocuments();
+  res.json({ count });
 });
 
-// Public member directory — no auth, limited fields, read-only
-app.get("/api/members/public", (_req, res) => {
-  const members = readMembers()
-    .filter((m) => m.status === "active")
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .map((m) => ({
+// ── Public Member Directory ──
+app.get("/api/members/public", async (_req, res) => {
+  const members = await Member.find({ status: "active" }, {
+    membershipId: 1,
+    fullName: 1,
+    district: 1,
+    state: 1,
+    photoBase64: 1,
+    createdAt: 1
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  res.json({
+    count: members.length,
+    members: members.map((m) => ({
       membershipId: m.membershipId,
       fullName: m.fullName,
       district: m.district || "",
       state: m.state || "",
-      photoUrl: m.photoUrl || "",
+      photoUrl: m.photoBase64 || "",
       createdAt: m.createdAt
-    }));
-  res.json({ count: members.length, members });
+    }))
+  });
 });
 
+// ── Admin Login ──
 app.post("/api/admin/login", (req, res) => {
   const { mobile, password } = req.body;
   if (!mobile || !password) {
@@ -304,56 +344,73 @@ app.post("/api/admin/login", (req, res) => {
   return res.json({ token, adminMobile: ADMIN_MOBILE });
 });
 
-app.get("/api/admin/members", authMiddleware, (_req, res) => {
-  const members = readMembers().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  res.json({ count: members.length, members });
+// ── Admin: Get All Members ──
+app.get("/api/admin/members", authMiddleware, async (_req, res) => {
+  const members = await Member.find().sort({ createdAt: -1 }).lean();
+  res.json({
+    count: members.length,
+    members: members.map((m) => ({
+      id: m._id,
+      membershipId: m.membershipId,
+      fullName: m.fullName,
+      mobile: m.mobile,
+      district: m.district,
+      address: m.address,
+      photoUrl: m.photoBase64 || "",
+      status: m.status,
+      createdAt: m.createdAt
+    }))
+  });
 });
 
-app.get("/api/admin/stats", authMiddleware, (_req, res) => {
-  const members = readMembers();
-  const today = new Date().toISOString().slice(0, 10);
-  const newToday = members.filter((m) => m.createdAt && m.createdAt.slice(0, 10) === today).length;
+// ── Admin: Stats ──
+app.get("/api/admin/stats", authMiddleware, async (_req, res) => {
+  const total = await Member.countDocuments();
+  const active = await Member.countDocuments({ status: "active" });
+  const inactive = total - active;
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const newToday = await Member.countDocuments({ createdAt: { $gte: todayStart } });
+
   res.json({
-    totalMembers: members.length,
-    activeMembers: members.filter((m) => m.status === "active").length,
-    inactiveMembers: members.filter((m) => m.status !== "active").length,
+    totalMembers: total,
+    activeMembers: active,
+    inactiveMembers: inactive,
     newToday
   });
 });
 
-app.delete("/api/admin/members/:membershipId", authMiddleware, (req, res) => {
+// ── Admin: Delete Member ──
+app.delete("/api/admin/members/:membershipId", authMiddleware, async (req, res) => {
   const membershipId = req.params.membershipId;
-  let members = readMembers();
-  const initialCount = members.length;
-  
-  members = members.filter((m) => m.membershipId !== membershipId);
-  
-  if (members.length === initialCount) {
+  const result = await Member.deleteOne({ membershipId });
+
+  if (result.deletedCount === 0) {
     return res.status(404).json({ message: "Member not found" });
   }
-  
-  writeMembers(members);
+
   res.json({ message: "Member deleted successfully" });
 });
 
-app.patch("/api/admin/members/:membershipId/toggle-status", authMiddleware, (req, res) => {
+// ── Admin: Toggle Status ──
+app.patch("/api/admin/members/:membershipId/toggle-status", authMiddleware, async (req, res) => {
   const membershipId = req.params.membershipId;
-  const members = readMembers();
-  const member = members.find((m) => m.membershipId === membershipId);
+  const member = await Member.findOne({ membershipId });
 
   if (!member) {
     return res.status(404).json({ message: "Member not found" });
   }
 
   member.status = member.status === "active" ? "inactive" : "active";
-  writeMembers(members);
+  await member.save();
   res.json({ message: `Member ${member.status === "active" ? "activated" : "deactivated"} successfully`, status: member.status });
 });
 
-app.get("/api/admin/export", authMiddleware, (_req, res) => {
-  const members = readMembers().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  
-  // Build CSV
+// ── Admin: Export CSV ──
+app.get("/api/admin/export", authMiddleware, async (_req, res) => {
+  const members = await Member.find().sort({ createdAt: -1 }).lean();
+
   const headers = ["Member ID", "Name", "Mobile", "District", "Address", "Status", "Registration Date"];
   const rows = members.map((m) => [
     m.membershipId,
@@ -366,13 +423,13 @@ app.get("/api/admin/export", authMiddleware, (_req, res) => {
   ]);
 
   const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-  
+
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename="sanatan-sena-members-${new Date().toISOString().slice(0,10)}.csv"`);
-  res.send("\uFEFF" + csv); // BOM for Excel UTF-8
+  res.send("\uFEFF" + csv);
 });
 
-
+// ── Org Meta ──
 app.get("/api/meta/org", (_req, res) => {
   res.json({
     nameHindi: "सनातन सेना",
@@ -388,6 +445,7 @@ app.get("/api/meta/org", (_req, res) => {
   });
 });
 
+// ── Catch-all: serve index.html ──
 app.get("*", (req, res, next) => {
   if (req.path.startsWith("/api/")) return next();
   return res.sendFile(path.join(__dirname, "public", "index.html"));
