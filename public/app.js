@@ -50,16 +50,31 @@ loadMemberCount();
 
 async function requestOtp(formData) {
   const mobile = String(formData.get("mobile") || "").trim();
-  const response = await fetch("/api/otp/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mobile })
-  });
-  const result = await response.json();
-  if (!response.ok) {
-    throw new Error(result.message || "OTP send failed");
+  
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  
+  try {
+    const response = await fetch("/api/otp/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mobile }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || "OTP send failed");
+    }
+    return result.otp;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error("Server timeout. Database or Gateway is hanging.");
+    }
+    throw error;
   }
-  return result.otp;
 }
 
 if (registrationForm && registrationMessage && cardOutput) {

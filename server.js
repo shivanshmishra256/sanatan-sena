@@ -140,7 +140,12 @@ app.post("/api/otp/send", async (req, res) => {
 
   try {
     const url = `https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_API_KEY}&route=otp&variables_values=${otp}&numbers=${normalizedMobile}`;
-    const response = await fetch(url);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
     const smsResult = await response.json();
     console.log("SMS Gateway Response:", smsResult);
 
@@ -153,6 +158,9 @@ app.post("/api/otp/send", async (req, res) => {
     });
   } catch (err) {
     console.error("SMS Gateway Network Error:", err);
+    if (err.name === 'AbortError') {
+      return res.status(504).json({ message: "SMS Gateway Timeout. Connection blocked or too slow." });
+    }
     return res.status(500).json({ message: "Failed to send OTP", error: err.message });
   }
 });
