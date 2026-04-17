@@ -29,20 +29,14 @@ async function ensureDBConnection() {
     console.log("✅ MongoDB connected successfully");
   } catch (err) {
     console.error("❌ MongoDB connection error:", err.message);
-    throw err;
+    // Don't throw to prevent hanging
   }
 }
 
-app.use(async (req, res, next) => {
-  if (req.path.startsWith("/api/") && MONGODB_URI) {
-    try {
-      await ensureDBConnection();
-    } catch (error) {
-      return res.status(500).json({ message: "Database connection failed", error: error.message });
-    }
-  }
-  next();
-});
+// Background connect without waiting
+if (MONGODB_URI) {
+  ensureDBConnection();
+}
 
 app.use(cors());
 app.use(express.json({ limit: "15mb" }));
