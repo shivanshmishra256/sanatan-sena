@@ -16,6 +16,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "sanatan-sena-dev-secret-change-thi
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "vivek1042x";
 const ADMIN_MOBILE = process.env.ADMIN_MOBILE || "+91 93056 25421";
 const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY || "";
+const MONGODB_URI = process.env.MONGODB_URI || "";
+const OTP_TTL_MS = 5 * 60 * 1000;
 // ── MongoDB Connection Middleware ──
 let isConnected = false;
 async function ensureDBConnection() {
