@@ -102,39 +102,18 @@ app.post("/api/otp/send", async (req, res) => {
 
   const normalizedMobile = normalizeMobile(mobile);
 
-  // Check if already registered
-  const exists = await Member.findOne({
-    $expr: {
-      $eq: [
-        { $substr: [{ $replaceAll: { input: "$mobile", find: " ", replacement: "" } }, -10, 10] },
-        normalizedMobile
-      ]
-    }
-  }).lean();
-
-  if (!exists) {
-    // Simple check with regex
-    const allMembers = await Member.find({}, { mobile: 1, membershipId: 1 }).lean();
-    const found = allMembers.find((m) => normalizeMobile(m.mobile) === normalizedMobile);
-    if (found) {
-      return res.status(409).json({
-        message: "इस नंबर से पंजीकरण पहले ही हो चुका है। / Mobile already registered.",
-        membershipId: found.membershipId
-      });
-    }
-  } else {
-    return res.status(409).json({
-      message: "इस नंबर से पंजीकरण पहले ही हो चुका है। / Mobile already registered.",
-      membershipId: exists.membershipId
-    });
-  }
-
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
   // Upsert OTP in DB (delete old one if exists)
-  await Otp.deleteMany({ mobile: normalizedMobile });
-  await Otp.create({ mobile: normalizedMobile, otp, expiresAt });
+  try {
+    if (mongoose.connection.readyState === 1) {
+      await Otp.deleteMany({ mobile: normalizedMobile });
+      await Otp.create({ mobile: normalizedMobile, otp, expiresAt });
+    }
+  } catch(e) {
+    console.error("OTP DB Error, ignoring", e);
+  }
 
   console.log(`Attempting to send OTP ${otp} to ${normalizedMobile}`);
 
