@@ -18,14 +18,15 @@
       /* ── Header ── */
       .admin-header {
         background: linear-gradient(135deg, #800000 0%, #b22222 50%, #cc5500 100%);
-        padding: 16px 24px;
+        padding: 14px 24px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        position: sticky;
-        top: 0;
-        z-index: 100;
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 200;
         box-shadow: 0 4px 20px rgba(128,0,0,0.3);
+        height: 60px;
       }
       .admin-header .logo-area {
         display: flex;
@@ -33,21 +34,21 @@
         gap: 12px;
       }
       .admin-header .logo-icon {
-        width: 40px; height: 40px;
+        width: 36px; height: 36px;
         background: rgba(255,215,0,0.2);
         border: 2px solid #ffd700;
         border-radius: 10px;
         display: flex; align-items: center; justify-content: center;
-        font-size: 1.2rem;
+        font-size: 1rem;
       }
       .admin-header h1 {
         color: #fff;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         font-weight: 700;
       }
       .admin-header h1 small {
         display: block;
-        font-size: 0.7rem;
+        font-size: 0.65rem;
         color: #ffd700;
         font-weight: 500;
         letter-spacing: 1px;
@@ -56,10 +57,10 @@
         display: flex; gap: 10px; align-items: center;
       }
       .header-actions a, .header-actions button {
-        padding: 8px 16px;
+        padding: 7px 14px;
         border-radius: 8px;
         font-family: inherit;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         font-weight: 600;
         cursor: pointer;
         text-decoration: none;
@@ -69,7 +70,7 @@
       .btn-site {
         background: rgba(255,255,255,0.15);
         color: #fff;
-        border: 1px solid rgba(255,255,255,0.3);
+        border: 1px solid rgba(255,255,255,0.3) !important;
       }
       .btn-site:hover { background: rgba(255,255,255,0.25); }
       .btn-logout {
@@ -78,11 +79,115 @@
       }
       .btn-logout:hover { background: #ffe44d; }
 
-      /* ── Container ── */
-      .admin-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 24px 20px;
+      /* ── Mobile menu toggle ── */
+      .sidebar-toggle {
+        display: none;
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: #fff;
+        width: 36px; height: 36px;
+        border-radius: 8px;
+        font-size: 1.2rem;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* ── Layout ── */
+      .app-layout {
+        display: flex;
+        margin-top: 60px;
+        min-height: calc(100vh - 60px);
+      }
+
+      /* ── Sidebar ── */
+      .sidebar {
+        width: 240px;
+        background: #fff;
+        border-right: 1px solid #ede5dc;
+        padding: 20px 0;
+        position: fixed;
+        top: 60px;
+        bottom: 0;
+        left: 0;
+        z-index: 100;
+        overflow-y: auto;
+        box-shadow: 2px 0 12px rgba(0,0,0,0.04);
+        transition: transform 0.3s ease;
+      }
+      .sidebar-section-title {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: #bbb;
+        padding: 8px 20px;
+        font-weight: 700;
+        margin-top: 12px;
+      }
+      .sidebar-nav {
+        list-style: none;
+      }
+      .sidebar-nav li {
+        margin: 2px 10px;
+      }
+      .sidebar-nav a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 14px;
+        border-radius: 10px;
+        text-decoration: none;
+        color: #666;
+        font-size: 0.88rem;
+        font-weight: 600;
+        transition: all 0.2s;
+      }
+      .sidebar-nav a:hover {
+        background: #fdf5ed;
+        color: #800000;
+      }
+      .sidebar-nav a.active {
+        background: linear-gradient(135deg, #800000, #cc5500);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(128,0,0,0.25);
+      }
+      .sidebar-nav a .nav-icon {
+        font-size: 1.1rem;
+        width: 24px;
+        text-align: center;
+      }
+      .sidebar-info {
+        margin: 20px 16px 0;
+        padding: 14px;
+        background: #fdf5ed;
+        border-radius: 12px;
+        border: 1px solid #f0e0d0;
+        text-align: center;
+      }
+      .sidebar-info p {
+        font-size: 0.72rem;
+        color: #999;
+        line-height: 1.4;
+      }
+      .sidebar-info strong {
+        color: #800000;
+        font-size: 0.8rem;
+      }
+
+      /* ── Main Content ── */
+      .main-content {
+        flex: 1;
+        margin-left: 240px;
+        padding: 24px 28px;
+        min-height: calc(100vh - 60px);
+      }
+
+      /* ── Page Section (dashboard vs members) ── */
+      .page-section {
+        display: none;
+      }
+      .page-section.active {
+        display: block;
       }
 
       /* ── Login ── */
@@ -144,7 +249,7 @@
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 16px;
-        margin-bottom: 24px;
+        margin-bottom: 28px;
       }
       .stat-card {
         background: #fff;
@@ -161,9 +266,9 @@
         width: 4px; height: 100%;
       }
       .stat-card.total::before { background: #800000; }
-      .stat-card.active::before { background: #2e7d32; }
-      .stat-card.inactive::before { background: #e65100; }
-      .stat-card.today::before { background: #1565c0; }
+      .stat-card.active-stat::before { background: #2e7d32; }
+      .stat-card.inactive-stat::before { background: #e65100; }
+      .stat-card.today-stat::before { background: #1565c0; }
       .stat-card .stat-icon {
         width: 40px; height: 40px;
         border-radius: 10px;
@@ -172,9 +277,9 @@
         margin-bottom: 10px;
       }
       .stat-card.total .stat-icon { background: #fde8e8; }
-      .stat-card.active .stat-icon { background: #e8f5e9; }
-      .stat-card.inactive .stat-icon { background: #fff3e0; }
-      .stat-card.today .stat-icon { background: #e3f2fd; }
+      .stat-card.active-stat .stat-icon { background: #e8f5e9; }
+      .stat-card.inactive-stat .stat-icon { background: #fff3e0; }
+      .stat-card.today-stat .stat-icon { background: #e3f2fd; }
       .stat-card .stat-label {
         font-size: 0.75rem;
         text-transform: uppercase;
@@ -187,6 +292,34 @@
         font-weight: 800;
         color: #333;
         margin-top: 2px;
+      }
+
+      /* ── Welcome Banner ── */
+      .welcome-banner {
+        background: linear-gradient(135deg, #800000 0%, #b22222 50%, #cc5500 100%);
+        border-radius: 16px;
+        padding: 24px 28px;
+        color: #fff;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+      }
+      .welcome-banner::after {
+        content: '🛡️';
+        position: absolute;
+        right: 24px; top: 50%;
+        transform: translateY(-50%);
+        font-size: 3rem;
+        opacity: 0.15;
+      }
+      .welcome-banner h2 {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      .welcome-banner p {
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.7);
       }
 
       /* ── Toolbar ── */
@@ -386,25 +519,44 @@
 
       .hidden { display: none !important; }
 
-      @media (max-width: 600px) {
-        .admin-header { flex-direction: column; gap: 10px; text-align: center; }
-        .header-actions { width: 100%; justify-content: center; }
+      /* ── Sidebar overlay for mobile ── */
+      .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 60px; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.4);
+        z-index: 90;
+      }
+      .sidebar-overlay.show { display: block; }
+
+      /* ── Responsive ── */
+      @media (max-width: 768px) {
+        .sidebar-toggle { display: flex; }
+        .sidebar {
+          transform: translateX(-100%);
+        }
+        .sidebar.open {
+          transform: translateX(0);
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 20px 14px;
+        }
+        .admin-header { padding: 12px 16px; }
         .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
         .stat-card { padding: 15px; }
         .stat-value { font-size: 1.5rem; }
         .toolbar { flex-direction: column; gap: 10px; }
         .search-box { min-width: 100%; }
         .btn-export { width: 100%; justify-content: center; }
-        
-        /* Table mobile improvements */
-        .table-scroll { 
-          margin: 0 -10px; 
-          width: calc(100% + 20px);
+        .table-scroll {
           -webkit-overflow-scrolling: touch;
         }
-        table { min-width: 600px; } /* Ensure table doesn't squish too much */
-        
-        .login-panel { padding: 30px 20px; margin: 40px auto; }
+        table { min-width: 600px; }
+        .login-panel { padding: 30px 20px; margin: 40px 16px; }
+        .welcome-banner { padding: 18px 20px; }
+        .welcome-banner h2 { font-size: 1.1rem; }
+        .welcome-banner::after { font-size: 2rem; right: 14px; }
       }
     </style>
   </head>
@@ -412,15 +564,19 @@
 
     <!-- Header -->
     <header class="admin-header" id="main-header" style="display:none;">
-      <div class="logo-area">
-        <div class="logo-icon">🛡️</div>
-        <h1>
-          Sanatan Sena
-          <small>ADMIN DASHBOARD</small>
-        </h1>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="sidebar-toggle" id="sidebar-toggle-btn" aria-label="Toggle Menu">☰</button>
+        <div class="logo-area">
+          <div class="logo-icon">🛡️</div>
+          <h1>
+            Sanatan Sena
+            <small>ADMIN DASHBOARD</small>
+          </h1>
+        </div>
       </div>
       <div class="header-actions">
-        <a href="/" class="btn-site">🌐 Public Site</a>
+        <a href="/" class="btn-site">🌐 Site</a>
+        <a href="/members.html" class="btn-site">👥 Public</a>
         <button class="btn-logout" id="logout-btn">Logout</button>
       </div>
     </header>
@@ -440,65 +596,139 @@
       </div>
     </div>
 
-    <!-- Dashboard -->
-    <div class="admin-container hidden" id="admin-dashboard-panel">
+    <!-- Dashboard Layout -->
+    <div class="app-layout hidden" id="admin-dashboard-panel">
 
-      <!-- Stats -->
-      <div class="stats-grid">
-        <div class="stat-card total">
-          <div class="stat-icon">👥</div>
-          <div class="stat-label">Total Members</div>
-          <div class="stat-value" id="stat-total">0</div>
-        </div>
-        <div class="stat-card active">
-          <div class="stat-icon">✅</div>
-          <div class="stat-label">Active Members</div>
-          <div class="stat-value" id="stat-active">0</div>
-        </div>
-        <div class="stat-card inactive">
-          <div class="stat-icon">⛔</div>
-          <div class="stat-label">Inactive</div>
-          <div class="stat-value" id="stat-inactive">0</div>
-        </div>
-        <div class="stat-card today">
-          <div class="stat-icon">🆕</div>
-          <div class="stat-label">New Today</div>
-          <div class="stat-value" id="stat-today">0</div>
-        </div>
-      </div>
+      <!-- Sidebar Overlay (mobile) -->
+      <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-      <!-- Toolbar -->
-      <div class="toolbar">
-        <div class="search-box">
-          <input type="text" id="search-input" placeholder="Search by Name, District, or Member ID..." />
-        </div>
-        <button class="btn-export" id="export-btn">📥 Export Excel</button>
-      </div>
+      <!-- Sidebar -->
+      <aside class="sidebar" id="admin-sidebar">
+        <p class="sidebar-section-title">Menu</p>
+        <ul class="sidebar-nav">
+          <li>
+            <a href="#" class="active" data-page="dashboard-page">
+              <span class="nav-icon">📊</span> Dashboard
+            </a>
+          </li>
+          <li>
+            <a href="#" data-page="members-page">
+              <span class="nav-icon">👥</span> सदस्य सूची
+            </a>
+          </li>
+        </ul>
 
-      <!-- Table -->
-      <div class="table-card">
-        <div class="table-header">
-          <h3>📋 All Members</h3>
-          <span class="count-badge" id="showing-count">0 members</span>
+        <p class="sidebar-section-title">Quick Links</p>
+        <ul class="sidebar-nav">
+          <li>
+            <a href="/members.html" target="_blank">
+              <span class="nav-icon">🌐</span> Public Members
+            </a>
+          </li>
+          <li>
+            <a href="/">
+              <span class="nav-icon">🏠</span> Main Site
+            </a>
+          </li>
+        </ul>
+
+        <div class="sidebar-info">
+          <strong>🛡️ Sanatan Sena</strong>
+          <p>Admin Panel v1.0<br/>सबका साथ सबका सम्मान</p>
         </div>
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Member</th>
-                <th>Mobile</th>
-                <th>District</th>
-                <th>Address</th>
-                <th>Status</th>
-                <th>Registered</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="members-table-body"></tbody>
-          </table>
+      </aside>
+
+      <!-- Main Content -->
+      <div class="main-content">
+
+        <!-- ─── Page: Dashboard ─── -->
+        <div class="page-section active" id="dashboard-page">
+          <div class="welcome-banner">
+            <h2>🙏 नमस्ते, Admin</h2>
+            <p>Sanatan Sena Admin Dashboard — आज की स्थिति</p>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card total">
+              <div class="stat-icon">👥</div>
+              <div class="stat-label">Total Members</div>
+              <div class="stat-value" id="stat-total">0</div>
+            </div>
+            <div class="stat-card active-stat">
+              <div class="stat-icon">✅</div>
+              <div class="stat-label">Active Members</div>
+              <div class="stat-value" id="stat-active">0</div>
+            </div>
+            <div class="stat-card inactive-stat">
+              <div class="stat-icon">⛔</div>
+              <div class="stat-label">Inactive</div>
+              <div class="stat-value" id="stat-inactive">0</div>
+            </div>
+            <div class="stat-card today-stat">
+              <div class="stat-icon">🆕</div>
+              <div class="stat-label">New Today</div>
+              <div class="stat-value" id="stat-today">0</div>
+            </div>
+          </div>
+
+          <!-- Recent Members Quick View -->
+          <div class="table-card">
+            <div class="table-header">
+              <h3>🕐 Recent Registrations</h3>
+              <a href="#" onclick="switchToPage('members-page'); return false;" style="color:#800000; text-decoration:none; font-size:0.8rem; font-weight:600;">View All →</a>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Member</th>
+                    <th>District</th>
+                    <th>Status</th>
+                    <th>Registered</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-table-body"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
-        <div class="no-results hidden" id="no-results">No members found matching your search.</div>
+
+        <!-- ─── Page: Members ─── -->
+        <div class="page-section" id="members-page">
+          <div class="toolbar">
+            <div class="search-box">
+              <input type="text" id="search-input" placeholder="Search by Name, District, or Member ID..." />
+            </div>
+            <button class="btn-export" id="export-btn">📥 Export Excel</button>
+          </div>
+
+          <div class="table-card">
+            <div class="table-header">
+              <h3>📋 All Members</h3>
+              <span class="count-badge" id="showing-count">0 members</span>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Member</th>
+                    <th>Mobile</th>
+                    <th>District</th>
+                    <th>Address</th>
+                    <th>Status</th>
+                    <th>Registered</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="members-table-body"></tbody>
+              </table>
+            </div>
+            <div class="no-results hidden" id="no-results">No members found matching your search.</div>
+          </div>
+        </div>
+
       </div>
     </div>
 

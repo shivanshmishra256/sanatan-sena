@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="hi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>सदस्य सूची | Sanatan Sena Members</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: 'Outfit', sans-serif;
+        background: #f5f0eb;
+        min-height: 100vh;
+        color: #333;
+      }
+
+      /* Header */
+      .page-header {
+        background: linear-gradient(135deg, #800000 0%, #b22222 50%, #cc5500 100%);
+        padding: 20px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 4px 20px rgba(128,0,0,0.3);
+      }
+      .page-header .logo-area {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .page-header .logo-icon {
+        width: 44px; height: 44px;
+        background: rgba(255,215,0,0.2);
+        border: 2px solid #ffd700;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.3rem;
+      }
+      .page-header h1 {
+        color: #fff;
+        font-size: 1.3rem;
+        font-weight: 700;
+      }
+      .page-header h1 small {
+        display: block;
+        font-size: 0.7rem;
+        color: #ffd700;
+        font-weight: 500;
+        letter-spacing: 1px;
+      }
+      .header-nav {
+        display: flex; gap: 10px; align-items: center;
+      }
+      .header-nav a {
+        padding: 8px 18px;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        border: none;
+        transition: all 0.2s;
+        background: rgba(255,255,255,0.15);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.3);
+      }
+      .header-nav a:hover { background: rgba(255,255,255,0.25); }
+      .header-nav a.btn-join {
+        background: #ffd700;
+        color: #800000;
+        border: none;
+        font-weight: 700;
+      }
+      .header-nav a.btn-join:hover { background: #ffe44d; }
+
+      /* Container */
+      .main-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 30px 20px;
+      }
+
+      /* Page Title */
+      .page-title-section {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .page-title-section h2 {
+        font-size: 1.8rem;
+        color: #800000;
+        font-weight: 800;
+        margin-bottom: 6px;
+      }
+      .page-title-section p {
+        color: #888;
+        font-size: 0.95rem;
+      }
+      .member-count-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #800000, #cc5500);
+        color: #fff;
+        padding: 6px 20px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-top: 10px;
+      }
+
+      /* Search */
+      .search-wrap {
+        max-width: 500px;
+        margin: 0 auto 24px;
+        position: relative;
+      }
+      .search-wrap input {
+        width: 100%;
+        padding: 14px 18px 14px 44px;
+        border: 2px solid #e8ddd0;
+        border-radius: 14px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        background: #fff;
+        transition: border-color 0.2s;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+      }
+      .search-wrap input:focus { outline: none; border-color: #cc5500; }
+      .search-wrap::before {
+        content: '🔍';
+        position: absolute;
+        left: 16px; top: 50%;
+        transform: translateY(-50%);
+        font-size: 1rem;
+      }
+
+      /* Members Grid */
+      .members-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 20px;
+      }
+      .member-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 24px 20px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        text-align: center;
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+      .member-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #800000, #cc5500, #ffd700);
+      }
+      .member-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 28px rgba(128,0,0,0.12);
+      }
+      .member-card .card-avatar {
+        width: 72px; height: 72px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #f0e0d0;
+        margin: 0 auto 12px;
+        display: block;
+      }
+      .member-card .card-avatar-placeholder {
+        width: 72px; height: 72px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #800000, #cc5500);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff;
+        font-size: 1.2rem;
+        font-weight: 800;
+        margin: 0 auto 12px;
+      }
+      .member-card .card-name {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 4px;
+      }
+      .member-card .card-id {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #800000;
+        background: #fde8e8;
+        padding: 3px 10px;
+        border-radius: 8px;
+        display: inline-block;
+        margin-bottom: 8px;
+      }
+      .member-card .card-district {
+        font-size: 0.8rem;
+        color: #888;
+      }
+      .member-card .card-district strong {
+        color: #555;
+      }
+      .member-card .card-date {
+        font-size: 0.7rem;
+        color: #bbb;
+        margin-top: 8px;
+      }
+
+      /* Loading & Empty */
+      .loading-msg, .empty-msg {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+        font-size: 1rem;
+      }
+      .loading-msg .spinner {
+        width: 36px; height: 36px;
+        border: 4px solid #e8ddd0;
+        border-top-color: #800000;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 12px;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* Footer */
+      .page-footer {
+        text-align: center;
+        padding: 24px;
+        color: #999;
+        font-size: 0.8rem;
+        margin-top: 40px;
+        border-top: 1px solid #e8ddd0;
+      }
+
+      .hidden { display: none !important; }
+
+      @media (max-width: 600px) {
+        .page-header { flex-direction: column; gap: 10px; text-align: center; }
+        .header-nav { width: 100%; justify-content: center; }
+        .page-title-section h2 { font-size: 1.4rem; }
+        .members-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+        .member-card { padding: 18px 14px; }
+        .member-card .card-avatar, .member-card .card-avatar-placeholder { width: 56px; height: 56px; font-size: 1rem; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <header class="page-header">
+      <div class="logo-area">
+        <div class="logo-icon">🚩</div>
+        <h1>
+          सदस्य सूची
+          <small>SANATAN SENA MEMBERS</small>
+        </h1>
+      </div>
+      <div class="header-nav">
+        <a href="/">🏠 Home</a>
+        <a href="/register.html" class="btn-join">अभी जुड़ें</a>
+      </div>
+    </header>
+
+    <div class="main-container">
+      <div class="page-title-section">
+        <h2>🚩 सनातन सेना — पंजीकृत सदस्य</h2>
+        <p>Registered Members of Sanatan Sena</p>
+        <div class="member-count-badge" id="total-count">Loading...</div>
+      </div>
+
+      <div class="search-wrap">
+        <input type="text" id="member-search" placeholder="नाम या जिला खोजें / Search by name or district..." />
+      </div>
+
+      <div id="members-container">
+        <div class="loading-msg" id="loading-state">
+          <div class="spinner"></div>
+          <p>सदस्य सूची लोड हो रही है...</p>
+        </div>
+      </div>
+
+      <div class="empty-msg hidden" id="empty-state">
+        कोई सदस्य नहीं मिला / No members found
+      </div>
+    </div>
+
+    <footer class="page-footer">
+      सनातन सेना (SS) • सबका साथ सबका सम्मान
+    </footer>
+
+    <script>
+      const container = document.getElementById("members-container");
+      const loadingState = document.getElementById("loading-state");
+      const emptyState = document.getElementById("empty-state");
+      const totalCount = document.getElementById("total-count");
+      const searchInput = document.getElementById("member-search");
+
+      let allMembers = [];
+
+      async function loadMembers() {
+        try {
+          const res = await fetch("/api/members/public");
+          const data = await res.json();
+          allMembers = data.members || [];
+          totalCount.textContent = `कुल सदस्य: ${data.count}`;
+          renderMembers(allMembers);
+        } catch (err) {
+          container.innerHTML = `<div class="empty-msg">सदस्य सूची लोड करने में त्रुटि / Error loading members</div>`;
+        }
+      }
+
+      function renderMembers(members) {
+        loadingState.classList.add("hidden");
+
+        if (members.length === 0) {
+          emptyState.classList.remove("hidden");
+          const grid = container.querySelector(".members-grid");
+          if (grid) grid.remove();
+          return;
+        }
+
+        emptyState.classList.add("hidden");
+
+        let grid = container.querySelector(".members-grid");
+        if (!grid) {
+          grid = document.createElement("div");
+          grid.className = "members-grid";
+          container.appendChild(grid);
+        }
+
+        grid.innerHTML = members.map((m) => {
+          const initials = (m.fullName || "?")
+            .split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+
+          const avatarHtml = m.photoUrl
+            ? `<img class="card-avatar" src="${m.photoUrl}" alt="${m.fullName}" />`
+            : `<div class="card-avatar-placeholder">${initials}</div>`;
+
+          const dateStr = m.createdAt
+            ? new Date(m.createdAt).toLocaleDateString("hi-IN", {
+                day: "2-digit", month: "short", year: "numeric"
+              })
+            : "";
+
+          return `
+            <div class="member-card">
+              ${avatarHtml}
+              <div class="card-name">${m.fullName}</div>
+              <div class="card-id">${m.membershipId}</div>
+              <div class="card-district">📍 <strong>${m.district}</strong>${m.state ? `, ${m.state}` : ""}</div>
+              ${dateStr ? `<div class="card-date">पंजीकरण: ${dateStr}</div>` : ""}
+            </div>
+          `;
+        }).join("");
+      }
+
+      // Search filter
+      if (searchInput) {
+        let timeout;
+        searchInput.addEventListener("input", () => {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => {
+            const q = searchInput.value.toLowerCase().trim();
+            if (!q) {
+              renderMembers(allMembers);
+              return;
+            }
+            const filtered = allMembers.filter(m =>
+              (m.fullName || "").toLowerCase().includes(q) ||
+              (m.district || "").toLowerCase().includes(q) ||
+              (m.membershipId || "").toLowerCase().includes(q)
+            );
+            renderMembers(filtered);
+          }, 200);
+        });
+      }
+
+      loadMembers();
+    </script>
+  </body>
+</html>

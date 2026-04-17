@@ -20,7 +20,9 @@
         <div class="lang-switch" role="group" aria-label="language switch">
           <button id="lang-hi" class="lang-btn active">हिंदी</button>
           <button id="lang-en" class="lang-btn">English</button>
-          <a class="admin-link" href="/admin.html">Admin</a>
+          <a href="/admin.html" class="chief-admin-btn" title="Admin Panel">
+            <img src="/assets/chief.jpg" alt="Admin" />
+          </a>
         </div>
       </div>
     </header>
@@ -59,6 +61,7 @@
           <div class="hero-actions">
             <a class="btn-primary" href="/register.html">Join & Get ID Card</a>
             <a class="btn-secondary" href="#verify">Verify Member ID</a>
+            <a class="btn-secondary" href="/members.html">👥 सदस्य सूची देखें</a>
           </div>
           <div class="counter-card">
             <div>
@@ -211,6 +214,32 @@
         <p>सनातन सेना (SS) • सबका साथ सबका सम्मान</p>
       </div>
     </footer>
+    <!-- Chief Admin Photo Button Style -->
+    <style>
+      .chief-admin-btn {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        margin-left: 6px;
+        transition: transform 0.2s;
+      }
+      .chief-admin-btn:hover {
+        transform: scale(1.1);
+      }
+      .chief-admin-btn img {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #ffd700;
+        box-shadow: 0 2px 8px rgba(128,0,0,0.3);
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      .chief-admin-btn:hover img {
+        border-color: #fff;
+        box-shadow: 0 4px 14px rgba(128,0,0,0.5);
+      }
+    </style>
 
     <script src="/app.js"></script>
   </body>

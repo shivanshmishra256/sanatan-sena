@@ -11,11 +11,18 @@ const statActive = document.getElementById("stat-active");
 const statInactive = document.getElementById("stat-inactive");
 const statToday = document.getElementById("stat-today");
 const tableBody = document.getElementById("members-table-body");
+const recentTableBody = document.getElementById("recent-table-body");
 const logoutBtn = document.getElementById("logout-btn");
 const searchInput = document.getElementById("search-input");
 const exportBtn = document.getElementById("export-btn");
 const showingCount = document.getElementById("showing-count");
 const noResults = document.getElementById("no-results");
+
+// Sidebar elements
+const sidebar = document.getElementById("admin-sidebar");
+const sidebarToggleBtn = document.getElementById("sidebar-toggle-btn");
+const sidebarOverlay = document.getElementById("sidebar-overlay");
+const sidebarLinks = document.querySelectorAll(".sidebar-nav a[data-page]");
 
 let allMembers = [];
 
@@ -46,6 +53,59 @@ function showLogin() {
   dashboardPanel.classList.add("hidden");
   loginPanel.classList.remove("hidden");
   mainHeader.style.display = "none";
+}
+
+// ── Sidebar Navigation ──
+function switchToPage(pageId) {
+  // Hide all pages
+  document.querySelectorAll(".page-section").forEach((p) => p.classList.remove("active"));
+  // Show target
+  const target = document.getElementById(pageId);
+  if (target) target.classList.add("active");
+
+  // Update sidebar active state
+  sidebarLinks.forEach((link) => {
+    link.classList.toggle("active", link.dataset.page === pageId);
+  });
+
+  // Close mobile sidebar
+  closeSidebar();
+}
+
+// Make switchToPage available globally for inline onclick
+window.switchToPage = switchToPage;
+
+sidebarLinks.forEach((link) => {
+  link.addEventListener("click", (e) => {
+    e.preventDefault();
+    const pageId = link.dataset.page;
+    if (pageId) switchToPage(pageId);
+  });
+});
+
+// ── Mobile Sidebar Toggle ──
+function openSidebar() {
+  if (sidebar) sidebar.classList.add("open");
+  if (sidebarOverlay) sidebarOverlay.classList.add("show");
+}
+
+function closeSidebar() {
+  if (sidebar) sidebar.classList.remove("open");
+  if (sidebarOverlay) sidebarOverlay.classList.remove("show");
+}
+
+if (sidebarToggleBtn) {
+  sidebarToggleBtn.addEventListener("click", () => {
+    if (sidebar.classList.contains("open")) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  });
+}
+
+if (sidebarOverlay) {
+  sidebarOverlay.addEventListener("click", closeSidebar);
 }
 
 // ── Actions ──
@@ -108,7 +168,7 @@ function showToast(message) {
   setTimeout(() => toast.remove(), 3000);
 }
 
-// ── Render Table ──
+// ── Render Full Members Table ──
 function renderMembers(members) {
   tableBody.innerHTML = "";
 
@@ -170,6 +230,56 @@ function renderMembers(members) {
   });
 }
 
+// ── Render Recent Members (Dashboard overview) ──
+function renderRecentMembers(members) {
+  if (!recentTableBody) return;
+  recentTableBody.innerHTML = "";
+
+  const recent = members.slice(0, 5); // Show last 5
+
+  if (recent.length === 0) {
+    recentTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding:30px;">No members registered yet</td></tr>`;
+    return;
+  }
+
+  recent.forEach((member) => {
+    const tr = document.createElement("tr");
+    if (member.status !== "active") tr.classList.add("inactive-row");
+
+    const initials = (member.fullName || "?")
+      .split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+
+    const photoHtml = member.photoUrl
+      ? `<img src="${member.photoUrl}" class="member-avatar" alt="${member.fullName}" />`
+      : `<div class="member-avatar-placeholder">${initials}</div>`;
+
+    const isActive = member.status === "active";
+    const statusHtml = `<span class="status-pill ${isActive ? "active" : "inactive"}">
+      <span class="dot"></span> ${isActive ? "Active" : "Inactive"}
+    </span>`;
+
+    const dateStr = member.createdAt
+      ? new Date(member.createdAt).toLocaleDateString("en-IN", {
+          day: "2-digit", month: "short", year: "numeric"
+        })
+      : "—";
+
+    tr.innerHTML = `
+      <td><span class="id-badge">${member.membershipId}</span></td>
+      <td>
+        <div class="member-cell">
+          ${photoHtml}
+          <span>${member.fullName}</span>
+        </div>
+      </td>
+      <td>${member.district || "—"}</td>
+      <td>${statusHtml}</td>
+      <td style="font-size:0.8rem; white-space:nowrap;">${dateStr}</td>
+    `;
+    recentTableBody.appendChild(tr);
+  });
+}
+
 // ── Search / Filter ──
 function filterMembers(query) {
   const q = query.toLowerCase().trim();
@@ -205,6 +315,11 @@ async function loadDashboard() {
     statToday.textContent = stats.newToday || 0;
 
     allMembers = membersData.members || [];
+    
+    // Render recent members on dashboard
+    renderRecentMembers(allMembers);
+    
+    // Render full table
     const query = searchInput ? searchInput.value : "";
     renderMembers(filterMembers(query));
   } catch (_err) {
@@ -268,10 +383,10 @@ loginForm.addEventListener("submit", async (event) => {
   }
 });
 
-// Logout
+// Logout — redirect to main site so admin login only shows when needed
 logoutBtn.addEventListener("click", () => {
   clearToken();
-  showLogin();
+  window.location.href = "/";
 });
 
 // Search

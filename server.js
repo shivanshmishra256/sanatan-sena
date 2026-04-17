@@ -266,6 +266,22 @@ app.get("/api/members/count", (_req, res) => {
   res.json({ count: members.length });
 });
 
+// Public member directory — no auth, limited fields, read-only
+app.get("/api/members/public", (_req, res) => {
+  const members = readMembers()
+    .filter((m) => m.status === "active")
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .map((m) => ({
+      membershipId: m.membershipId,
+      fullName: m.fullName,
+      district: m.district || "",
+      state: m.state || "",
+      photoUrl: m.photoUrl || "",
+      createdAt: m.createdAt
+    }));
+  res.json({ count: members.length, members });
+});
+
 app.post("/api/admin/login", (req, res) => {
   const { mobile, password } = req.body;
   if (!mobile || !password) {
