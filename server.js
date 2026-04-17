@@ -7,6 +7,7 @@ const QRCode = require("qrcode");
 const multer = require("multer");
 const mongoose = require("mongoose");
 const Member = require("./models/Member");
+const Otp = require("./models/Otp");
 
 const app = express();
 const PORT = process.env.PORT || 5050;
@@ -17,8 +18,6 @@ const ADMIN_MOBILE = process.env.ADMIN_MOBILE || "+91 93056 25421";
 const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY || "";
 const MONGODB_URI = process.env.MONGODB_URI || "";
 const OTP_TTL_MS = 5 * 60 * 1000;
-
-const pendingOtps = new Map();
 
 // ── MongoDB Connection ──
 if (MONGODB_URI) {
@@ -115,9 +114,11 @@ app.post("/api/otp/send", async (req, res) => {
   }
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = Date.now() + OTP_TTL_MS;
+  const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
-  pendingOtps.set(normalizedMobile, { otp, expiresAt });
+  // Upsert OTP in DB (delete old one if exists)
+  await Otp.deleteMany({ mobile: normalizedMobile });
+  await Otp.create({ mobile: normalizedMobile, otp, expiresAt });
 
   console.log(`Attempting to send OTP ${otp} to ${normalizedMobile}`);
 
@@ -175,12 +176,14 @@ app.post("/api/members/register", (req, res, next) => {
 
     const normalizedMobile = normalizeMobile(mobile);
 
-    const otpEntry = pendingOtps.get(normalizedMobile);
-    if (!otpEntry || otpEntry.expiresAt < Date.now() || otpEntry.otp !== String(otp || "")) {
+    const checkOtp = otp ? String(otp).trim() : "";
+    const otpDoc = await Otp.findOne({ mobile: normalizedMobile, otp: checkOtp });
+    
+    if (!otpDoc || otpDoc.expiresAt < Date.now()) {
       return res.status(401).json({ message: "Invalid or expired OTP" });
     }
 
-    pendingOtps.delete(normalizedMobile);
+    await Otp.deleteMany({ mobile: normalizedMobile });
 
     // Check duplicate
     const allMembers = await Member.find({}, { mobile: 1, membershipId: 1 }).lean();
