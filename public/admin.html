@@ -549,10 +549,55 @@
         .toolbar { flex-direction: column; gap: 10px; }
         .search-box { min-width: 100%; }
         .btn-export { width: 100%; justify-content: center; }
-        .table-scroll {
-          -webkit-overflow-scrolling: touch;
+        .table-scroll { overflow-x: visible; }
+        table, thead, tbody, th, td, tr { display: block; }
+        thead { display: none; }
+        tr {
+          border: 1px solid #f0e0d0;
+          border-radius: 12px;
+          margin-bottom: 16px;
+          background: #fff;
+          padding: 8px 12px;
         }
-        table { min-width: 600px; }
+        td {
+          border: none !important;
+          padding: 10px 10px 10px 100px !important;
+          position: relative;
+          text-align: right;
+          min-height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          border-bottom: 1px solid #f5f0eb !important;
+          max-width: 100% !important;
+        }
+        td:last-child { border-bottom: none !important; justify-content: flex-end; }
+        td::before {
+          position: absolute;
+          left: 10px;
+          width: 80px;
+          text-align: left;
+          font-weight: 700;
+          color: #800000;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          white-space: nowrap;
+        }
+        
+        #members-table td:nth-of-type(1)::before { content: "ID"; }
+        #members-table td:nth-of-type(2)::before { content: "Name"; }
+        #members-table td:nth-of-type(3)::before { content: "Mobile"; }
+        #members-table td:nth-of-type(4)::before { content: "District"; }
+        #members-table td:nth-of-type(5)::before { content: "Address"; }
+        #members-table td:nth-of-type(6)::before { content: "Status"; }
+        #members-table td:nth-of-type(7)::before { content: "Date"; }
+        #members-table td:nth-of-type(8)::before { content: "Actions"; }
+        
+        #dashboard-view table td:nth-of-type(1)::before { content: "ID"; }
+        #dashboard-view table td:nth-of-type(2)::before { content: "Name"; }
+        #dashboard-view table td:nth-of-type(3)::before { content: "Mobile"; }
+        #dashboard-view table td:nth-of-type(4)::before { content: "Status"; }
+        #dashboard-view table td:nth-of-type(5)::before { content: "Date"; }
         .login-panel { padding: 30px 20px; margin: 40px 16px; }
         .welcome-banner { padding: 18px 20px; }
         .welcome-banner h2 { font-size: 1.1rem; }
