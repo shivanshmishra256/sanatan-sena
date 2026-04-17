@@ -156,7 +156,7 @@ if (registrationForm && registrationMessage && cardOutput) {
           </div>
           
           <div class="card-footer">
-            SS • NATIONAL PRESIDENT: VRUJENDRA SINGH FAUJI
+            SS • NATIONAL PRESIDENT: VRIJENDRA SINGH FAUJI
           </div>
         </div>
       `;
