@@ -101,8 +101,9 @@ app.post("/api/otp/send", async (req, res) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
-  // Upsert OTP in DB (delete old one if exists)
+  // Ensure DB is ready, then store OTP
   try {
+    await ensureDBConnection();
     if (mongoose.connection.readyState === 1) {
       await Otp.deleteMany({ mobile: normalizedMobile });
       await Otp.create({ mobile: normalizedMobile, otp, expiresAt });
@@ -153,6 +154,11 @@ app.post("/api/members/register", (req, res, next) => {
   });
 }, async (req, res) => {
   try {
+    await ensureDBConnection();
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: "Database not available. Please try again in a moment." });
+    }
+
     const {
       fullName,
       fatherName,
@@ -263,6 +269,9 @@ app.post("/api/members/register", (req, res, next) => {
 
 // ── Verify Member ──
 app.get("/api/members/verify/:membershipId", async (req, res) => {
+  try {
+    await ensureDBConnection();
+  } catch(e) { /* ignore */ }
   const membershipId = req.params.membershipId;
   const member = await Member.findOne({ membershipId }).lean();
 
@@ -293,12 +302,17 @@ app.get("/api/members/verify/:membershipId", async (req, res) => {
 
 // ── Member Count ──
 app.get("/api/members/count", async (_req, res) => {
-  const count = await Member.countDocuments();
+  try { await ensureDBConnection(); } catch(e) { /* ignore */ }
+  const count = mongoose.connection.readyState === 1 ? await Member.countDocuments() : 0;
   res.json({ count });
 });
 
 // ── Public Member Directory ──
 app.get("/api/members/public", async (_req, res) => {
+  try { await ensureDBConnection(); } catch(e) { /* ignore */ }
+  if (mongoose.connection.readyState !== 1) {
+    return res.json({ count: 0, members: [] });
+  }
   const members = await Member.find({ status: "active" }, {
     membershipId: 1,
     fullName: 1,
@@ -348,6 +362,10 @@ app.post("/api/admin/login", (req, res) => {
 
 // ── Admin: Get All Members ──
 app.get("/api/admin/members", authMiddleware, async (_req, res) => {
+  try { await ensureDBConnection(); } catch(e) { /* ignore */ }
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ message: "Database not available" });
+  }
   const members = await Member.find().sort({ createdAt: -1 }).lean();
   res.json({
     count: members.length,
@@ -367,6 +385,10 @@ app.get("/api/admin/members", authMiddleware, async (_req, res) => {
 
 // ── Admin: Stats ──
 app.get("/api/admin/stats", authMiddleware, async (_req, res) => {
+  try { await ensureDBConnection(); } catch(e) { /* ignore */ }
+  if (mongoose.connection.readyState !== 1) {
+    return res.json({ totalMembers: 0, activeMembers: 0, inactiveMembers: 0, newToday: 0 });
+  }
   const total = await Member.countDocuments();
   const active = await Member.countDocuments({ status: "active" });
   const inactive = total - active;
@@ -385,6 +407,7 @@ app.get("/api/admin/stats", authMiddleware, async (_req, res) => {
 
 // ── Admin: Delete Member ──
 app.delete("/api/admin/members/:membershipId", authMiddleware, async (req, res) => {
+  try { await ensureDBConnection(); } catch(e) { /* ignore */ }
   const membershipId = req.params.membershipId;
   const result = await Member.deleteOne({ membershipId });
 
@@ -397,6 +420,7 @@ app.delete("/api/admin/members/:membershipId", authMiddleware, async (req, res) 
 
 // ── Admin: Toggle Status ──
 app.patch("/api/admin/members/:membershipId/toggle-status", authMiddleware, async (req, res) => {
+  try { await ensureDBConnection(); } catch(e) { /* ignore */ }
   const membershipId = req.params.membershipId;
   const member = await Member.findOne({ membershipId });
 
@@ -411,6 +435,7 @@ app.patch("/api/admin/members/:membershipId/toggle-status", authMiddleware, asyn
 
 // ── Admin: Export CSV ──
 app.get("/api/admin/export", authMiddleware, async (_req, res) => {
+  try { await ensureDBConnection(); } catch(e) { /* ignore */ }
   const members = await Member.find().sort({ createdAt: -1 }).lean();
 
   const headers = ["Member ID", "Name", "Mobile", "District", "Address", "Status", "Registration Date"];

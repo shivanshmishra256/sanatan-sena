@@ -281,41 +281,87 @@ if (verifyForm && verifyOutput) {
   }
 }
 
-async function downloadCardPdf() {
+// ── Card capture helper: hides buttons inside card, captures with html2canvas, restores ──
+async function captureCardCanvas() {
   const card = document.getElementById("id-card");
-  if (!card || !window.html2canvas || !window.jspdf) return;
+  if (!card) return null;
+  if (!window.html2canvas) {
+    alert("Capture library not loaded. Please refresh the page and try again.");
+    return null;
+  }
 
-  const canvas = await window.html2canvas(card, { 
-    scale: 3, 
-    useCORS: true,
-    backgroundColor: null 
-  });
-  const imageData = canvas.toDataURL("image/png");
-  const pdf = new window.jspdf.jsPDF({ orientation: "portrait", unit: "px", format: [380, 600] });
-  pdf.addImage(imageData, "PNG", 20, 20, 340, 560);
-  pdf.save("SS-Member-ID.pdf");
+  // Hide any action buttons that are nested inside the card element
+  const hiddenEls = card.querySelectorAll("button, .card-actions");
+  hiddenEls.forEach(el => { el.dataset._origDisplay = el.style.display; el.style.display = "none"; });
+
+  let canvas = null;
+  try {
+    canvas = await window.html2canvas(card, {
+      scale: 3,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+      logging: false
+    });
+  } finally {
+    // Always restore visibility
+    hiddenEls.forEach(el => { el.style.display = el.dataset._origDisplay || ""; delete el.dataset._origDisplay; });
+  }
+  return canvas;
 }
 
-function printCard() {
-  const card = document.getElementById("id-card");
-  if (!card) return;
-  const printWindow = window.open("", "_blank", "width=700,height=520");
-  if (!printWindow) return;
+async function downloadCardPdf() {
+  const canvas = await captureCardCanvas();
+  if (!canvas) return;
+
+  // Download the card as a high-quality PNG
+  const link = document.createElement("a");
+  link.download = "Sanatan-Sena-ID-Card.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
+async function printCard() {
+  const canvas = await captureCardCanvas();
+  if (!canvas) return;
+
+  const imgData = canvas.toDataURL("image/png");
+  const printWindow = window.open("", "_blank", "width=520,height=780");
+  if (!printWindow) { alert("Pop-up blocked. Please allow pop-ups for this site."); return; }
 
   printWindow.document.write(`
+    <!DOCTYPE html>
     <html>
       <head>
-        <title>Print ID Card</title>
-        <link rel="stylesheet" href="/styles.css" />
+        <title>Sanatan Sena – Member ID Card</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            background: #fff;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 20px;
+            min-height: 100vh;
+          }
+          img { width: 360px; max-width: 100%; display: block; }
+          @media print {
+            body { padding: 0; }
+            img { width: 100%; }
+          }
+        <\/style>
       </head>
-      <body style="margin:0;padding:24px;background:#fff7e9;">
-        ${card.outerHTML}
+      <body>
+        <img src="${imgData}" alt="Membership ID Card" />
+        <script>
+          window.onload = function() {
+            setTimeout(function() { window.print(); }, 600);
+          };
+        <\/script>
       </body>
     </html>
   `);
   printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
 }
 
 if (downloadCardBtn) {
