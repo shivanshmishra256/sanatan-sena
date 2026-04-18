@@ -19,20 +19,21 @@ const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY || "";
 const MONGODB_URI = process.env.MONGODB_URI || "";
 const OTP_TTL_MS = 5 * 60 * 1000;
 // ── MongoDB Connection Middleware ──
-let isConnected = false;
+let dbPromise = null;
 async function ensureDBConnection() {
-  if (isConnected || mongoose.connection.readyState === 1) return;
-  try {
-    await mongoose.connect(MONGODB_URI, {
+  if (mongoose.connection.readyState === 1) return;
+  if (!dbPromise || mongoose.connection.readyState === 0) {
+    dbPromise = mongoose.connect(MONGODB_URI, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 30000,
+    }).then(() => {
+      console.log("✅ MongoDB connected successfully");
+    }).catch((err) => {
+      console.error("❌ MongoDB connection error:", err.message);
+      dbPromise = null;
     });
-    isConnected = true;
-    console.log("✅ MongoDB connected successfully");
-  } catch (err) {
-    console.error("❌ MongoDB connection error:", err.message);
-    // Don't throw to prevent hanging
   }
+  await dbPromise;
 }
 
 // Background connect without waiting
@@ -302,9 +303,13 @@ app.get("/api/members/verify/:membershipId", async (req, res) => {
 
 // ── Member Count ──
 app.get("/api/members/count", async (_req, res) => {
-  try { await ensureDBConnection(); } catch(e) { /* ignore */ }
-  const count = mongoose.connection.readyState === 1 ? await Member.countDocuments() : 0;
-  res.json({ count });
+  try { 
+    await ensureDBConnection(); 
+    const count = await Member.countDocuments();
+    res.json({ count });
+  } catch(e) { 
+    res.json({ count: 0 });
+  }
 });
 
 // ── Public Member Directory ──
@@ -363,9 +368,6 @@ app.post("/api/admin/login", (req, res) => {
 // ── Admin: Get All Members ──
 app.get("/api/admin/members", authMiddleware, async (_req, res) => {
   try { await ensureDBConnection(); } catch(e) { /* ignore */ }
-  if (mongoose.connection.readyState !== 1) {
-    return res.status(503).json({ message: "Database not available" });
-  }
   const members = await Member.find().sort({ createdAt: -1 }).lean();
   res.json({
     count: members.length,
@@ -385,24 +387,26 @@ app.get("/api/admin/members", authMiddleware, async (_req, res) => {
 
 // ── Admin: Stats ──
 app.get("/api/admin/stats", authMiddleware, async (_req, res) => {
-  try { await ensureDBConnection(); } catch(e) { /* ignore */ }
-  if (mongoose.connection.readyState !== 1) {
-    return res.json({ totalMembers: 0, activeMembers: 0, inactiveMembers: 0, newToday: 0 });
+  try { 
+    await ensureDBConnection(); 
+
+    const total = await Member.countDocuments();
+    const active = await Member.countDocuments({ status: "active" });
+    const inactive = total - active;
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const newToday = await Member.countDocuments({ createdAt: { $gte: todayStart } });
+
+    res.json({
+      totalMembers: total,
+      activeMembers: active,
+      inactiveMembers: inactive,
+      newToday
+    });
+  } catch(e) {
+    res.json({ totalMembers: 0, activeMembers: 0, inactiveMembers: 0, newToday: 0 });
   }
-  const total = await Member.countDocuments();
-  const active = await Member.countDocuments({ status: "active" });
-  const inactive = total - active;
-
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const newToday = await Member.countDocuments({ createdAt: { $gte: todayStart } });
-
-  res.json({
-    totalMembers: total,
-    activeMembers: active,
-    inactiveMembers: inactive,
-    newToday
-  });
 });
 
 // ── Admin: Delete Member ──
