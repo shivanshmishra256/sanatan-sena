@@ -205,7 +205,7 @@ if (registrationForm && registrationMessage && cardOutput) {
           </div>
           
           <div class="card-footer">
-            SS • NATIONAL PRESIDENT: VRIJENDRA SINGH FAUJI
+            SS • SANATAN SENA CHIEF: VRIJENDRA SINGH FAUJI
           </div>
         </div>
       `;
