@@ -11,6 +11,7 @@ const memberSchema = new mongoose.Schema({
   state: { type: String, default: "" },
   district: { type: String, required: true },
   address: { type: String, required: true },
+  age: { type: Number, default: 0 },
   photoBase64: { type: String, default: "" },  // Store photo as base64
   language: { type: String, default: "hi" },
   qrCodeDataUrl: { type: String, default: "" },

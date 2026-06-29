@@ -170,6 +170,7 @@ app.post("/api/members/register", (req, res, next) => {
       state,
       district,
       address,
+      age,
       language,
       otp
     } = req.body;
@@ -178,6 +179,11 @@ app.post("/api/members/register", (req, res, next) => {
       return res.status(400).json({
         message: "fullName, mobile, district and address are required"
       });
+    }
+
+    const parsedAge = Number(age);
+    if (!Number.isFinite(parsedAge) || parsedAge < 18) {
+      return res.status(400).json({ message: "Not Eligible" });
     }
 
     const normalizedMobile = normalizeMobile(mobile);
@@ -231,6 +237,7 @@ app.post("/api/members/register", (req, res, next) => {
       state: String(state || "").trim(),
       district: String(district || "").trim(),
       address: String(address || "").trim(),
+      age: parsedAge,
       photoBase64,
       language: language === "en" ? "en" : "hi",
       qrCodeDataUrl,

@@ -33,7 +33,33 @@ const printCardBtn = document.getElementById("print-card");
 const otpRow = document.getElementById("otp-row");
 const resendOtpBtn = document.getElementById("resend-otp");
 const submitBtn = document.getElementById("submit-btn");
+const ageInput = registrationForm ? registrationForm.querySelector('input[name="age"]') : null;
+const ageStatus = document.getElementById("age-status");
 let otpRequested = false;
+
+function updateAgeEligibility() {
+  if (!ageInput || !ageStatus) return;
+
+  const ageValue = Number(ageInput.value);
+  if (!ageInput.value) {
+    ageStatus.textContent = "";
+    ageInput.setAttribute("aria-invalid", "false");
+    return;
+  }
+
+  if (ageValue < 18) {
+    ageStatus.textContent = "Not Eligible";
+    ageInput.setAttribute("aria-invalid", "true");
+  } else {
+    ageStatus.textContent = "";
+    ageInput.setAttribute("aria-invalid", "false");
+  }
+}
+
+if (ageInput) {
+  ageInput.addEventListener("input", updateAgeEligibility);
+  ageInput.addEventListener("change", updateAgeEligibility);
+}
 
 async function loadMemberCount() {
   if (!memberCount) return;
@@ -80,6 +106,14 @@ async function requestOtp(formData) {
 if (registrationForm && registrationMessage && cardOutput) {
   registrationForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    updateAgeEligibility();
+
+    if (ageInput && Number(ageInput.value) < 18) {
+      registrationMessage.textContent = "Not Eligible";
+      if (ageStatus) ageStatus.textContent = "Not Eligible";
+      return;
+    }
+
     registrationMessage.textContent = "Submitting...";
 
     const formData = new FormData(registrationForm);
